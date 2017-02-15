@@ -14,10 +14,10 @@
         <maven.compiler.source>1.7</maven.compiler.source>
         <maven.compiler.target>1.7</maven.compiler.target>
         <maven.version>3.3.9</maven.version>
-        <spark.version>2.0.1</spark.version>
-        <flink.suffix>_2.11</flink.suffix>
-        <scala.version>2.11.8</scala.version>
-        <scala.binary.version>2.11</scala.binary.version>
+        <spark.version>1.6.3</spark.version>
+        <flink.suffix>_2.10</flink.suffix>
+        <scala.version>2.10.5</scala.version>
+        <scala.binary.version>2.10</scala.binary.version>
     </properties>
     <repositories>
         <repository>

@@ -26,8 +26,8 @@ import ml.dmlc.xgboost4j.java.{Rabit, DMatrix => JDMatrix, RabitTracker => PyRab
 import ml.dmlc.xgboost4j.scala.DMatrix
 import ml.dmlc.xgboost4j.scala.rabit.RabitTracker
 import org.apache.spark.SparkContext
-import org.apache.spark.ml.feature.LabeledPoint
-import org.apache.spark.ml.linalg.{Vectors, Vector => SparkVector}
+import org.apache.spark.mllib.regression.LabeledPoint
+import org.apache.spark.mllib.linalg.{Vectors, Vector => SparkVector}
 import org.apache.spark.rdd.RDD
 
 class XGBoostGeneralSuite extends SharedSparkContext with Utils {

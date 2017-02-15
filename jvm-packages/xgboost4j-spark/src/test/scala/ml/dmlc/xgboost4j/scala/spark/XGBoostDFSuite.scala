@@ -19,9 +19,9 @@ package ml.dmlc.xgboost4j.scala.spark
 import ml.dmlc.xgboost4j.java.{DMatrix => JDMatrix}
 import ml.dmlc.xgboost4j.scala.{DMatrix, XGBoost => ScalaXGBoost}
 import org.apache.spark.SparkContext
-import org.apache.spark.ml.feature.LabeledPoint
-import org.apache.spark.ml.linalg.DenseVector
 import org.apache.spark.ml.param.ParamMap
+import org.apache.spark.mllib.linalg.DenseVector
+import org.apache.spark.mllib.regression.LabeledPoint
 import org.apache.spark.sql._
 
 class XGBoostDFSuite extends SharedSparkContext with Utils {
@@ -31,10 +31,11 @@ class XGBoostDFSuite extends SharedSparkContext with Utils {
   private def buildTrainingDataframe(sparkContext: Option[SparkContext] = None): DataFrame = {
     if (trainingDF == null) {
       val rowList = loadLabelPoints(getClass.getResource("/agaricus.txt.train").getFile)
+      sparkContext.getOrElse(sc).getConf.setAppName("XGBoostDFSuite")
       val labeledPointsRDD = sparkContext.getOrElse(sc).parallelize(rowList, numWorkers)
-      val sparkSession = SparkSession.builder().appName("XGBoostDFSuite").getOrCreate()
-      import sparkSession.implicits._
-      trainingDF = sparkSession.createDataset(labeledPointsRDD).toDF
+      val sqlContext = SQLContext.getOrCreate(sparkContext.getOrElse(sc))
+      import sqlContext.implicits._
+      trainingDF = sqlContext.createDataFrame(labeledPointsRDD).toDF
     }
     trainingDF
   }
@@ -58,7 +59,7 @@ class XGBoostDFSuite extends SharedSparkContext with Utils {
     val trainingDF = buildTrainingDataframe()
     val xgBoostModelWithDF = XGBoost.trainWithDataFrame(trainingDF, paramMap,
       round = 5, nWorkers = numWorkers, useExternalMemory = false)
-    val testDF = trainingDF.sparkSession.createDataFrame(testSetItr.toList).toDF(
+    val testDF = trainingDF.sqlContext.createDataFrame(testSetItr.toList).toDF(
       "id", "features", "label")
     val predResultsFromDF = xgBoostModelWithDF.setExternalMemory(true).transform(testDF).
       collect().map(row =>
@@ -87,7 +88,7 @@ class XGBoostDFSuite extends SharedSparkContext with Utils {
       case (instance: LabeledPoint, id: Int) =>
         (id, instance.features, instance.label)
     }
-    val testDF = trainingDF.sparkSession.createDataFrame(testSetItr.toList).toDF(
+    val testDF = trainingDF.sqlContext.createDataFrame(testSetItr.toList).toDF(
       "id", "features", "label")
     xgBoostModelWithDF.transformLeaf(testDF).show()
   }
@@ -100,18 +101,20 @@ class XGBoostDFSuite extends SharedSparkContext with Utils {
       zipWithIndex.map { case (instance: LabeledPoint, id: Int) =>
       (id, instance.features, instance.label)
     }
+
+    val sc = SparkContext.getOrCreate()
+    sc.getConf.setAppName("XGBoostDFSuite")
     val trainingDF = {
       val rowList = loadLabelPoints(getClass.getResource("/machine.txt.train").getFile,
         zeroBased = true)
       val labeledPointsRDD = sc.parallelize(rowList, numWorkers)
-      val sparkSession = SparkSession.builder().appName("XGBoostDFSuite").getOrCreate()
-      import sparkSession.implicits._
-      sparkSession.createDataset(labeledPointsRDD).toDF
+      val sparkSession = SQLContext.getOrCreate(sc)
+      sparkSession.createDataFrame(labeledPointsRDD)
     }
     val xgBoostModelWithDF = XGBoost.trainWithDataFrame(trainingDF, paramMap,
       round = 5, nWorkers = numWorkers, useExternalMemory = true)
     xgBoostModelWithDF.setPredictionCol("final_prediction")
-    val testDF = trainingDF.sparkSession.createDataFrame(testItr.toList).toDF(
+    val testDF = trainingDF.sqlContext.createDataFrame(testItr.toList).toDF(
       "id", "features", "label")
     val predictionDF = xgBoostModelWithDF.setExternalMemory(true).transform(testDF)
     assert(predictionDF.columns.contains("id") === true)
@@ -134,7 +137,7 @@ class XGBoostDFSuite extends SharedSparkContext with Utils {
       round = 5, nWorkers = numWorkers, useExternalMemory = true)
     xgBoostModelWithDF.asInstanceOf[XGBoostClassificationModel].setRawPredictionCol(
       "raw_prediction").setPredictionCol("final_prediction")
-    val testDF = trainingDF.sparkSession.createDataFrame(testItr.toList).toDF(
+    val testDF = trainingDF.sqlContext.createDataFrame(testItr.toList).toDF(
       "id", "features", "label")
     var predictionDF = xgBoostModelWithDF.setExternalMemory(true).transform(testDF)
     assert(predictionDF.columns.contains("id") === true)
@@ -183,7 +186,6 @@ class XGBoostDFSuite extends SharedSparkContext with Utils {
     val xgbEstimatorCopy1 = xgbEstimator.copy(sparkParamMap.put(xgbEstimator.evalMetric, "logloss"))
     assert(xgbEstimatorCopy1.xgboostParams.get("eval_metric") === Some("logloss"))
   }
-
 
 
 }

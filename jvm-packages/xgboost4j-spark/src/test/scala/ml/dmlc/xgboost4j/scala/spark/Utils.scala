@@ -22,8 +22,8 @@ import scala.collection.mutable.ListBuffer
 import scala.io.Source
 
 import org.apache.spark.SparkContext
-import org.apache.spark.ml.feature.LabeledPoint
-import org.apache.spark.ml.linalg.{DenseVector, Vector => SparkVector}
+import org.apache.spark.mllib.regression.LabeledPoint
+import org.apache.spark.mllib.linalg.{DenseVector, Vector => SparkVector}
 import org.apache.spark.rdd.RDD
 
 trait Utils extends Serializable {

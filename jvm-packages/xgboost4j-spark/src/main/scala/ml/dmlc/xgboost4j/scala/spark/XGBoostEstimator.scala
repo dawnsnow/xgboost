@@ -16,17 +16,17 @@
 
 package ml.dmlc.xgboost4j.scala.spark
 
-import scala.collection.mutable
-
 import ml.dmlc.xgboost4j.scala.spark.params.{BoosterParams, GeneralParams, LearningTaskParams}
 import org.apache.spark.ml.Predictor
-import org.apache.spark.ml.feature.LabeledPoint
-import org.apache.spark.ml.linalg.{Vector => MLVector}
 import org.apache.spark.ml.param._
 import org.apache.spark.ml.util.Identifiable
+import org.apache.spark.mllib.linalg.{Vector => MLVector}
+import org.apache.spark.mllib.regression.LabeledPoint
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.DoubleType
-import org.apache.spark.sql.{Dataset, Row}
+import org.apache.spark.sql.{DataFrame, Row}
+
+import scala.collection.mutable
 
 /**
  * XGBoost Estimator to produce a XGBoost model
@@ -109,7 +109,7 @@ class XGBoostEstimator private[spark](
   /**
    * produce a XGBoostModel by fitting the given dataset
    */
-  override def train(trainingSet: Dataset[_]): XGBoostModel = {
+  override def train(trainingSet: DataFrame): XGBoostModel = {
     val instances = trainingSet.select(
       col($(featuresCol)), col($(labelCol)).cast(DoubleType)).rdd.map {
       case Row(feature: MLVector, label: Double) =>

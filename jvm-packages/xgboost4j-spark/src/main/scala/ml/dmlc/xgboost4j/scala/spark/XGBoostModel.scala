@@ -22,8 +22,8 @@ import ml.dmlc.xgboost4j.java.{DMatrix => JDMatrix, Rabit}
 import ml.dmlc.xgboost4j.scala.{Booster, DMatrix, EvalTrait}
 import org.apache.hadoop.fs.{FSDataOutputStream, Path}
 import org.apache.spark.ml.PredictionModel
-import org.apache.spark.ml.feature.{LabeledPoint => MLLabeledPoint}
-import org.apache.spark.ml.linalg.{DenseVector => MLDenseVector, Vector => MLVector}
+import org.apache.spark.mllib.regression.{LabeledPoint => MLLabeledPoint}
+import org.apache.spark.mllib.linalg.{DenseVector => MLDenseVector, Vector => MLVector}
 import org.apache.spark.ml.param.{Param, Params}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql._
@@ -183,25 +183,25 @@ abstract class XGBoostModel(protected var _booster: Booster)
     }
   }
 
-  protected def transformImpl(testSet: Dataset[_]): DataFrame
+  protected def transformImpl(testSet: DataFrame): DataFrame
 
   /**
    * append leaf index of each row as an additional column in the original dataset
    *
    * @return the original dataframe with an additional column containing prediction results
    */
-  def transformLeaf(testSet: Dataset[_]): DataFrame = {
+  def transformLeaf(testSet: DataFrame): DataFrame = {
     val predictRDD = produceRowRDD(testSet, predLeaf = true)
     setPredictionCol("predLeaf")
     transformSchema(testSet.schema, logging = true)
-    testSet.sparkSession.createDataFrame(predictRDD, testSet.schema.add($(predictionCol),
+    testSet.sqlContext.createDataFrame(predictRDD, testSet.schema.add($(predictionCol),
       ArrayType(FloatType, containsNull = false)))
   }
 
-  protected def produceRowRDD(testSet: Dataset[_], outputMargin: Boolean = false,
+  protected def produceRowRDD(testSet: DataFrame, outputMargin: Boolean = false,
       predLeaf: Boolean = false): RDD[Row] = {
-    val broadcastBooster = testSet.sparkSession.sparkContext.broadcast(_booster)
-    val appName = testSet.sparkSession.sparkContext.appName
+    val broadcastBooster = testSet.sqlContext.sparkContext.broadcast(_booster)
+    val appName = testSet.sqlContext.sparkContext.appName
     testSet.rdd.mapPartitions {
       rowIterator =>
         if (rowIterator.hasNext) {
@@ -244,7 +244,7 @@ abstract class XGBoostModel(protected var _booster: Booster)
    *
    * @return the original dataframe with an additional column containing prediction results
    */
-  override def transform(testSet: Dataset[_]): DataFrame = {
+  override def transform(testSet: DataFrame): DataFrame = {
     transformImpl(testSet)
   }
 
